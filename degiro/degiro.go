@@ -9,6 +9,7 @@ import (
 
 	"github.com/dghubble/sling"
 	"github.com/jorgefuertes/go-degiro/degiro/streaming"
+	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -24,8 +25,9 @@ type Client struct {
 	sling           *sling.Sling
 	streamingClient *streaming.Client
 
-	username string
-	password string
+	username   string
+	password   string
+	totpSecret string
 
 	clientId          int
 	accountId         int64
@@ -81,6 +83,7 @@ func NewClient(httpClient *http.Client) *Client {
 type LoginParams struct {
 	Username           string `json:"username"`
 	Password           string `json:"password"`
+	OTP                string `json:"oneTimePassword"`
 	IsRedirectToMobile bool   `json:"isRedirectToMobile"`
 }
 
@@ -93,10 +96,12 @@ type LoginResponse struct {
 	StatusText        string `json:"statusText"`
 }
 
-func (c *Client) Login(username string, password string) error {
+func (c *Client) Login(username, password, TOTPSecret string) error {
 	c.username = username
 	c.password = password
-	LoginResponse, err := c.login(username, password)
+	c.totpSecret = TOTPSecret
+
+	LoginResponse, err := c.login(username, password, TOTPSecret)
 	if err != nil {
 		return fmt.Errorf("login: %v", err)
 	}
@@ -121,13 +126,24 @@ func (c *Client) Login(username string, password string) error {
 	return nil
 }
 
-func (c *Client) login(username string, password string) (*LoginResponse, error) {
+func (c *Client) login(username, password, totpSecret string) (*LoginResponse, error) {
+	otpCode := ""
+	if totpSecret != "" {
+		var err error
+
+		otpCode, err = totp.GenerateCode(totpSecret, time.Now())
+		if err != nil {
+			return nil, fmt.Errorf("generating opt code: %v", err)
+		}
+	}
+
 	LoginResponse := &LoginResponse{}
 	resp, err := c.sling.New().Post("login/secure/login").
 		Set("Referer", "https://trader.degiro.nl/login/fr").
 		BodyJSON(&LoginParams{
 			Username:           username,
 			Password:           password,
+			OTP:                otpCode,
 			IsRedirectToMobile: false,
 		}).ReceiveSuccess(LoginResponse)
 	if err != nil {
@@ -171,7 +187,7 @@ func (c *Client) ReceiveSuccessReloginOn401(s *sling.Sling, successV interface{}
 	}
 	if resp.StatusCode == 401 && c.TryReloginOn401 && (time.Now().Sub(c.lastLoginDate) >= 15*time.Second) {
 		log.Info("Try relogin")
-		LoginResponse, err := c.login(c.username, c.password)
+		LoginResponse, err := c.login(c.username, c.password, c.totpSecret)
 		if err != nil {
 			return nil, fmt.Errorf("relogin on 401: %v", err)
 		}

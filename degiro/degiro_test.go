@@ -38,13 +38,13 @@ func TestLogin(t *testing.T) {
 		headers.Set("Content-Length", "180")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       io.NopCloser(bytes.NewBufferString(`{"isPassCodeEnabled":true,"locale":"fr_FR","redirectUrl":"https://trader.degiro.nl/trader/","sessionId":"FE1544EE1A2905C0954F71F863DA7EC2.prod11","status":0,"statusText":"success"}`)),
+			Body:       io.NopCloser(bytes.NewBufferString(`{"isPassCodeEnabled":true,"locale":"es_ES","redirectUrl":"https://trader.degiro.nl/trader/","sessionId":"FE1544EE1A2905C0954F71F863DA7EC2.prod11","status":0,"statusText":"success"}`)),
 			Header:     getCommonHeaders(),
 		}
 	})
 
 	degiro := NewClient(client)
-	resp, err := degiro.login("login", "password")
+	resp, err := degiro.login("login", "password", "otpcode")
 
 	assert.Nil(err)
 	if assert.NotNil(resp) {
@@ -53,7 +53,7 @@ func TestLogin(t *testing.T) {
 		assert.Equal("success", resp.StatusText)
 		assert.Equal("https://trader.degiro.nl/trader/", resp.RedirectUrl)
 		assert.Equal(true, resp.IsPassCodeEnabled)
-		assert.Equal("fr_FR", resp.Locale)
+		assert.Equal("es_ES", resp.Locale)
 	}
 
 }

@@ -3,7 +3,7 @@ package streaming
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 	"time"
@@ -50,7 +50,7 @@ func TestRequestSession(t *testing.T) {
 		headers.Set("Content-Length", "52")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(`{"sessionId":"fdba16eb-d421-46a0-af14-1667394629e9"}`)),
+			Body:       io.NopCloser(bytes.NewBufferString(`{"sessionId":"fdba16eb-d421-46a0-af14-1667394629e9"}`)),
 			Header:     headers,
 		}
 	})
@@ -81,7 +81,7 @@ func TestSubscribeProductQuotes(t *testing.T) {
 		headers.Set("Content-Length", "0")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+			Body:       io.NopCloser(bytes.NewBufferString(``)),
 			Header:     headers,
 		}
 	})

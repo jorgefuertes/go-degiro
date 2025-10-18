@@ -3,7 +3,7 @@ package degiro
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -38,7 +38,7 @@ func TestLogin(t *testing.T) {
 		headers.Set("Content-Length", "180")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(`{"isPassCodeEnabled":true,"locale":"fr_FR","redirectUrl":"https://trader.degiro.nl/trader/","sessionId":"FE1544EE1A2905C0954F71F863DA7EC2.prod11","status":0,"statusText":"success"}`)),
+			Body:       io.NopCloser(bytes.NewBufferString(`{"isPassCodeEnabled":true,"locale":"fr_FR","redirectUrl":"https://trader.degiro.nl/trader/","sessionId":"FE1544EE1A2905C0954F71F863DA7EC2.prod11","status":0,"statusText":"success"}`)),
 			Header:     getCommonHeaders(),
 		}
 	})
@@ -82,7 +82,7 @@ func TestGetUserConfiguration(t *testing.T) {
 		headers.Set("Content-Length", "979")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       ioutil.NopCloser(bytes.NewBufferString(`{"data":{"id":123456,"intAccount":12345678,"clientRole":"active","effectiveClientRole":"active","contractType":"PRIVATE","username":"username","displayName":"displayName","email":"foo@bar.com","firstContact":{"firstName":"Foo","lastName":"Bar","displayName":"Foo Bar","nationality":"US","gender":"MALE","dateOfBirth":"1900-01-01","placeOfBirth":"","countryOfBirth":"US"},"address":{"streetAddress":"","streetAddressNumber":"","zip":"","city":"","country":""},"cellphoneNumber":"","locale":"","language":"","culture":"","bankAccount":{"bankAccountId":0,"bic":"","name":"","iban":"","status":"VERIFIED"},"memberCode":"","isWithdrawalAvailable":true,"isAllocationAvailable":true,"isIskClient":false,"isCollectivePortfolio":false,"isAmClientActive":false,"canUpgrade":true}}`)),
+			Body:       io.NopCloser(bytes.NewBufferString(`{"data":{"id":123456,"intAccount":12345678,"clientRole":"active","effectiveClientRole":"active","contractType":"PRIVATE","username":"username","displayName":"displayName","email":"foo@bar.com","firstContact":{"firstName":"Foo","lastName":"Bar","displayName":"Foo Bar","nationality":"US","gender":"MALE","dateOfBirth":"1900-01-01","placeOfBirth":"","countryOfBirth":"US"},"address":{"streetAddress":"","streetAddressNumber":"","zip":"","city":"","country":""},"cellphoneNumber":"","locale":"","language":"","culture":"","bankAccount":{"bankAccountId":0,"bic":"","name":"","iban":"","status":"VERIFIED"},"memberCode":"","isWithdrawalAvailable":true,"isAllocationAvailable":true,"isIskClient":false,"isCollectivePortfolio":false,"isAmClientActive":false,"canUpgrade":true}}`)),
 			Header:     headers,
 		}
 	})

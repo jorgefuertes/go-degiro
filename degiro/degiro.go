@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/dghubble/sling"
-	"github.com/llehouerou/go-degiro/degiro/streaming"
+	"github.com/jorgefuertes/go-degiro/degiro/streaming"
 	log "github.com/sirupsen/logrus"
 )
 

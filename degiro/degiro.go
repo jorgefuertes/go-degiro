@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/dghubble/sling"
-	"github.com/jorgefuertes/go-degiro/degiro/streaming"
 	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/jorgefuertes/go-degiro/degiro/streaming"
 )
 
 const baseUrl = "https://trader.degiro.nl"
@@ -185,7 +186,7 @@ func (c *Client) ReceiveSuccessReloginOn401(s *sling.Sling, successV interface{}
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode == 401 && c.TryReloginOn401 && (time.Now().Sub(c.lastLoginDate) >= 15*time.Second) {
+	if resp.StatusCode == 401 && c.TryReloginOn401 && (time.Since(c.lastLoginDate) >= 15*time.Second) {
 		log.Info("Try relogin")
 		LoginResponse, err := c.login(c.username, c.password, c.totpSecret)
 		if err != nil {
@@ -274,13 +275,16 @@ func (c *Client) getUserConfiguration() (*UserConfiguration, error) {
 		return nil, fmt.Errorf("requesting user configuration: %v", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return nil, fmt.Errorf("requesting user configuration: %d - %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf(
+			"requesting user configuration: %d - %s",
+			resp.StatusCode,
+			http.StatusText(resp.StatusCode),
+		)
 	}
 	return &userConfigurationResponse.UserConfiguration, nil
 }
 
 func (c *Client) NewStreamingClient(httpclient *http.Client, updatePeriod time.Duration) *streaming.Client {
-
 	return streaming.NewStreamingClient(httpclient, c.clientId, updatePeriod)
 }
 

@@ -6,10 +6,9 @@ import (
 	"net/url"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
 	"github.com/dghubble/sling"
 	"github.com/shopspring/decimal"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -103,13 +102,11 @@ func (c *Client) UnSubscribeQuotes(idlist []string) error {
 
 func (c *Client) loopUpdateQuotes() {
 	ticker := time.NewTicker(c.quoteUpdatePeriod)
-	for {
-		select {
-		case <-ticker.C:
-			err := c.getQuoteUpdates()
-			if err != nil {
-				log.Errorf("retrieving quote updates: %v", err)
-			}
+	defer ticker.Stop()
+	for range ticker.C {
+		err := c.getQuoteUpdates()
+		if err != nil {
+			log.Errorf("retrieving quote updates: %v", err)
 		}
 	}
 }
@@ -125,6 +122,7 @@ func (c *Client) getQuoteStringValue(name string) string {
 	}
 	return value
 }
+
 func (c *Client) getQuoteDecimalValue(name string) decimal.Decimal {
 	id, exist := c.indexes.Get(name)
 	if !exist {
@@ -157,12 +155,14 @@ func (c *Client) requestSession() (string, error) {
 	response := &struct {
 		SessionId string `json:"sessionId"`
 	}{}
-	resp, err := c.sling.New().Post(fmt.Sprintf("request_session?version=%s&userToken=%d", streamingApiVersion, c.clientId)).
+	resp, err := c.sling.New().
+		Post(fmt.Sprintf("request_session?version=%s&userToken=%d", streamingApiVersion, c.clientId)).
 		BodyJSON(&struct {
 			Referrer string `json:"referrer"`
 		}{
 			Referrer: "https://internal.degiro.eu",
-		}).ReceiveSuccess(response)
+		}).
+		ReceiveSuccess(response)
 	if err != nil {
 		return "", fmt.Errorf("requesting session: %v", err)
 	}
@@ -181,7 +181,7 @@ func (c *Client) unSubscribeProductQuotes(issueIdList []string) error {
 }
 
 func (c *Client) postProductQuotes(issueIdList []string, subscribe bool) error {
-	resp, err := c.sling.New().Post(fmt.Sprintf("%s", c.sessionId)).
+	resp, err := c.sling.New().Post(c.sessionId).
 		BodyJSON(&struct {
 			Data string `json:"controlData"`
 		}{
@@ -215,7 +215,7 @@ func (c *Client) getQuoteUpdates() error {
 		Name  string        `json:"m"`
 		Value []interface{} `json:"v"`
 	}{}
-	resp, err := c.sling.New().Get(fmt.Sprintf("%s", c.sessionId)).ReceiveSuccess(response)
+	resp, err := c.sling.New().Get(c.sessionId).ReceiveSuccess(response)
 	if err != nil {
 		return fmt.Errorf("requesting quote updates: %v", err)
 	}

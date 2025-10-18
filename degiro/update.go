@@ -61,13 +61,12 @@ func (c *Client) updatePositionCacheFromResponse(response *updateResponse) {
 func (c *Client) startUpdating() {
 	go func() {
 		ticker := time.NewTicker(c.UpdatePeriod)
-		for {
-			select {
-			case <-ticker.C:
-				err := c.update()
-				if err != nil {
-					logrus.Errorf("updating: %v", err)
-				}
+		defer ticker.Stop()
+
+		for range ticker.C {
+			err := c.update()
+			if err != nil {
+				logrus.Errorf("updating: %v", err)
 			}
 		}
 	}()

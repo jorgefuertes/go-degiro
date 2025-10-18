@@ -4,11 +4,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/jorgefuertes/go-degiro/degiro/streaming"
-
+	"github.com/shopspring/decimal"
 	log "github.com/sirupsen/logrus"
 
-	"github.com/shopspring/decimal"
+	"github.com/jorgefuertes/go-degiro/degiro/streaming"
 )
 
 type HistoricalPosition struct {
@@ -40,7 +39,6 @@ func (p *HistoricalPosition) GetSize() int {
 }
 
 func GetPru(transactions []Transaction) decimal.Decimal {
-
 	var totalSize int64
 	var totalPrice decimal.Decimal
 	for _, t := range transactions {
@@ -61,7 +59,6 @@ func (p *HistoricalPosition) GetPru() decimal.Decimal {
 }
 
 func (p *HistoricalPosition) GetPastPerformance() decimal.Decimal {
-
 	var res decimal.Decimal
 	var tmpTrans []Transaction
 	for _, t := range p.transactions {
@@ -89,7 +86,6 @@ func (p *HistoricalPosition) GetTotalBuyAmount() decimal.Decimal {
 }
 
 func (p *HistoricalPosition) GetPastPerformanceSince(since time.Time) decimal.Decimal {
-
 	var res decimal.Decimal
 	var tmpTrans []Transaction
 	for _, t := range p.transactions {
@@ -106,7 +102,10 @@ func (p *HistoricalPosition) GetCurrentPerformance(quote streaming.ProductQuote)
 	if quote.BidPrice.Equal(decimal.NewFromFloat(0)) || quote.AskPrice.Equal(decimal.NewFromFloat(0)) {
 		return decimal.Decimal{}
 	}
-	return quote.AskPrice.Add(quote.BidPrice).Div(decimal.New(2, 0)).Sub(p.GetPru()).Mul(decimal.New(int64(p.GetSize()), 0))
+	return quote.AskPrice.Add(quote.BidPrice).
+		Div(decimal.New(2, 0)).
+		Sub(p.GetPru()).
+		Mul(decimal.New(int64(p.GetSize()), 0))
 }
 
 func (p *HistoricalPosition) GetCurrentPerformanceInPercent(quote streaming.ProductQuote) decimal.Decimal {
@@ -116,11 +115,14 @@ func (p *HistoricalPosition) GetCurrentPerformanceInPercent(quote streaming.Prod
 	if p.GetPru().Equal(decimal.Decimal{}) {
 		return decimal.Decimal{}
 	}
-	return quote.AskPrice.Add(quote.BidPrice).Div(decimal.New(2, 0)).Sub(p.GetPru()).Mul(decimal.New(100, 0)).Div(p.GetPru())
+	return quote.AskPrice.Add(quote.BidPrice).
+		Div(decimal.New(2, 0)).
+		Sub(p.GetPru()).
+		Mul(decimal.New(100, 0)).
+		Div(p.GetPru())
 }
 
 func (p *HistoricalPosition) GetFirstTransactionDate() time.Time {
-
 	if len(p.transactions) == 0 {
 		return time.Time{}
 	}
@@ -128,7 +130,6 @@ func (p *HistoricalPosition) GetFirstTransactionDate() time.Time {
 }
 
 func (p *HistoricalPosition) GetLastTransactionDate() time.Time {
-
 	if len(p.transactions) == 0 {
 		return time.Time{}
 	}
@@ -175,17 +176,19 @@ func (c *Client) startHistoricalPositionUdpating() {
 		if err != nil {
 			log.Warnf("error while getting initial transaction history: %v", err)
 		}
+
 		c.transactions.Merge(transactions)
+
 		ticker := time.NewTicker(c.HistoricalPositionUpdatePeriod)
-		for {
-			select {
-			case <-ticker.C:
-				transactions, err := c.GetTransactions(time.Now().Add(-c.HistoricalPositionUpdatePeriod-(1*time.Minute)), time.Now())
-				if err != nil {
-					log.Warnf("error while getting transaction history update: %v", err)
-				}
-				c.transactions.Merge(transactions)
+		for range ticker.C {
+			transactions, err := c.GetTransactions(
+				time.Now().Add(-c.HistoricalPositionUpdatePeriod-(1*time.Minute)),
+				time.Now(),
+			)
+			if err != nil {
+				log.Warnf("error while getting transaction history update: %v", err)
 			}
+			c.transactions.Merge(transactions)
 		}
 	}()
 }

@@ -44,7 +44,14 @@ func TestRequestSession(t *testing.T) {
 	clientId := 123456
 
 	client := NewTestClient(func(req *http.Request) *http.Response {
-		assert.Equal(req.URL.String(), fmt.Sprintf("https://degiro.quotecast.vwdservices.com/CORS/request_session?userToken=%d&version=%s", clientId, streamingApiVersion))
+		assert.Equal(
+			req.URL.String(),
+			fmt.Sprintf(
+				"https://degiro.quotecast.vwdservices.com/CORS/request_session?userToken=%d&version=%s",
+				clientId,
+				streamingApiVersion,
+			),
+		)
 
 		headers := getCommonStreamingHeaders()
 		headers.Set("Content-Length", "52")
@@ -91,5 +98,4 @@ func TestSubscribeProductQuotes(t *testing.T) {
 	err := streaming.subscribeProductQuotes(issueList)
 
 	assert.Nil(err)
-
 }

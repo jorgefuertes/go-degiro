@@ -67,7 +67,6 @@ func newProductCache(client *Client, invalidationDuration time.Duration) *Produc
 	}
 	go cache.updateCache()
 	return cache
-
 }
 
 func (c *ProductCache) get(productid string) (ProductCacheItem, bool) {
@@ -79,16 +78,6 @@ func (c *ProductCache) get(productid string) (ProductCacheItem, bool) {
 		}
 	}
 	return ProductCacheItem{}, false
-}
-func (c *ProductCache) remove(productid string) {
-	c.Lock()
-	defer c.Unlock()
-	for i := len(c.cache) - 1; i >= 0; i-- {
-		if c.cache[i].Product.Id == productid {
-			c.cache[i] = c.cache[len(c.cache)-1]
-			c.cache = c.cache[:len(c.cache)-1]
-		}
-	}
 }
 
 func (c *ProductCache) add(product Product) {
@@ -112,30 +101,26 @@ func (c *ProductCache) add(product Product) {
 
 func (c *ProductCache) updateCache() {
 	ticker := time.NewTicker(time.Minute)
-	for {
-		select {
-		case <-ticker.C:
-			func() {
-				c.updateLock.Lock()
-				defer c.updateLock.Unlock()
-				if len(c.productsToUpdate) == 0 {
-					return
-				}
-				var ids []string
-				for s := range c.productsToUpdate {
-					ids = append(ids, s)
-				}
-				newProducts, err := c.client.getProducts(ids)
-				if err != nil {
-					log.Warnf("error while updating product infos: %v", err)
-				}
-				for _, product := range newProducts {
-					c.add(product)
-				}
-				c.productsToUpdate = make(map[string]bool)
-			}()
+	for range ticker.C {
+		c.updateLock.Lock()
+		{
+			defer c.updateLock.Unlock()
+			if len(c.productsToUpdate) == 0 {
+				return
+			}
+			var ids []string
+			for s := range c.productsToUpdate {
+				ids = append(ids, s)
+			}
+			newProducts, err := c.client.getProducts(ids)
+			if err != nil {
+				log.Warnf("error while updating product infos: %v", err)
+			}
+			for _, product := range newProducts {
+				c.add(product)
+			}
+			c.productsToUpdate = make(map[string]bool)
 		}
-
 	}
 }
 
@@ -146,7 +131,7 @@ func (c *ProductCache) GetProducts(productids []string) []Product {
 		if !ok {
 			continue
 		}
-		if time.Now().Sub(item.LastUpdate) > c.CacheInvalidationDuration {
+		if time.Since(item.LastUpdate) > c.CacheInvalidationDuration {
 			func() {
 				c.updateLock.Lock()
 				defer c.updateLock.Unlock()

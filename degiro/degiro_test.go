@@ -26,7 +26,6 @@ func NewTestClient(fn RoundTripFunc) *http.Client {
 }
 
 func TestLogin(t *testing.T) {
-
 	assert := assert.New(t)
 
 	client := NewTestClient(func(req *http.Request) *http.Response {
@@ -38,8 +37,12 @@ func TestLogin(t *testing.T) {
 		headers.Set("Content-Length", "180")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       io.NopCloser(bytes.NewBufferString(`{"isPassCodeEnabled":true,"locale":"es_ES","redirectUrl":"https://trader.degiro.nl/trader/","sessionId":"FE1544EE1A2905C0954F71F863DA7EC2.prod11","status":0,"statusText":"success"}`)),
-			Header:     getCommonHeaders(),
+			Body: io.NopCloser(
+				bytes.NewBufferString(
+					`{"isPassCodeEnabled":true,"locale":"es_ES","redirectUrl":"https://trader.degiro.nl/trader/","sessionId":"FE1544EE1A2905C0954F71F863DA7EC2.prod11","status":0,"statusText":"success"}`,
+				),
+			),
+			Header: getCommonHeaders(),
 		}
 	})
 
@@ -55,7 +58,6 @@ func TestLogin(t *testing.T) {
 		assert.Equal(true, resp.IsPassCodeEnabled)
 		assert.Equal("es_ES", resp.Locale)
 	}
-
 }
 
 func getCommonHeaders() http.Header {
@@ -82,8 +84,12 @@ func TestGetUserConfiguration(t *testing.T) {
 		headers.Set("Content-Length", "979")
 		return &http.Response{
 			StatusCode: 200,
-			Body:       io.NopCloser(bytes.NewBufferString(`{"data":{"id":123456,"intAccount":12345678,"clientRole":"active","effectiveClientRole":"active","contractType":"PRIVATE","username":"username","displayName":"displayName","email":"foo@bar.com","firstContact":{"firstName":"Foo","lastName":"Bar","displayName":"Foo Bar","nationality":"US","gender":"MALE","dateOfBirth":"1900-01-01","placeOfBirth":"","countryOfBirth":"US"},"address":{"streetAddress":"","streetAddressNumber":"","zip":"","city":"","country":""},"cellphoneNumber":"","locale":"","language":"","culture":"","bankAccount":{"bankAccountId":0,"bic":"","name":"","iban":"","status":"VERIFIED"},"memberCode":"","isWithdrawalAvailable":true,"isAllocationAvailable":true,"isIskClient":false,"isCollectivePortfolio":false,"isAmClientActive":false,"canUpgrade":true}}`)),
-			Header:     headers,
+			Body: io.NopCloser(
+				bytes.NewBufferString(
+					`{"data":{"id":123456,"intAccount":12345678,"clientRole":"active","effectiveClientRole":"active","contractType":"PRIVATE","username":"username","displayName":"displayName","email":"foo@bar.com","firstContact":{"firstName":"Foo","lastName":"Bar","displayName":"Foo Bar","nationality":"US","gender":"MALE","dateOfBirth":"1900-01-01","placeOfBirth":"","countryOfBirth":"US"},"address":{"streetAddress":"","streetAddressNumber":"","zip":"","city":"","country":""},"cellphoneNumber":"","locale":"","language":"","culture":"","bankAccount":{"bankAccountId":0,"bic":"","name":"","iban":"","status":"VERIFIED"},"memberCode":"","isWithdrawalAvailable":true,"isAllocationAvailable":true,"isIskClient":false,"isCollectivePortfolio":false,"isAmClientActive":false,"canUpgrade":true}}`,
+				),
+			),
+			Header: headers,
 		}
 	})
 	degiro := NewClient(client)

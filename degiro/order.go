@@ -274,9 +274,15 @@ func (r updateOrderResponse) ConvertToOrder() (*Order, error) {
 			order.StopPrice = decimal.NewFromFloat(property.Value.(float64))
 		case "date":
 			var date time.Time
-			date, err := time.Parse("2006-01-02 15:04", fmt.Sprintf("%s %s", time.Now().Format("2006-01-02"), property.Value.(string)))
+			date, err := time.Parse(
+				"2006-01-02 15:04",
+				fmt.Sprintf("%s %s", time.Now().Format("2006-01-02"), property.Value.(string)),
+			)
 			if err != nil {
-				date, err = time.Parse("02/01/2006", fmt.Sprintf("%s/%s", property.Value.(string), time.Now().Format("2006")))
+				date, err = time.Parse(
+					"02/01/2006",
+					fmt.Sprintf("%s/%s", property.Value.(string), time.Now().Format("2006")),
+				)
 				if err != nil {
 					return nil, fmt.Errorf("parsing date %s: %v", property.Value.(string), err)
 				}

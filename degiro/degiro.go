@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dghubble/sling"
-	"github.com/pquerna/otp/totp"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/jorgefuertes/go-degiro/degiro/streaming"
@@ -59,7 +58,7 @@ func NewClient(httpClient *http.Client) *Client {
 	base := sling.New().Client(httpClient).Base(baseUrl).New().
 		Set("Origin", baseUrl).
 		Set("Accept", "application/json, text/plain, */*").
-		Set("Accept-Language", "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3").
+		Set("Accept-Language", "q=0.8,en-US;q=0.5,en;q=0.3").
 		Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0").
 		Set("Referer", "https://trader.degiro.nl/trader/")
 
@@ -83,8 +82,8 @@ func NewClient(httpClient *http.Client) *Client {
 
 type LoginParams struct {
 	Username           string `json:"username"`
-	Password           string `json:"password"`
-	OTP                string `json:"oneTimePassword"`
+	Password           string `json:"password,omitempty"`
+	OTP                string `json:"oneTimePassword,omitempty"`
 	IsRedirectToMobile bool   `json:"isRedirectToMobile"`
 }
 
@@ -128,31 +127,45 @@ func (c *Client) Login(username, password, TOTPSecret string) error {
 }
 
 func (c *Client) login(username, password, totpSecret string) (*LoginResponse, error) {
-	otpCode := ""
-	if totpSecret != "" {
-		var err error
-
-		otpCode, err = totp.GenerateCode(totpSecret, time.Now())
-		if err != nil {
-			return nil, fmt.Errorf("generating opt code: %v", err)
-		}
-	}
-
-	LoginResponse := &LoginResponse{}
+	LoginResponse := new(LoginResponse)
 	resp, err := c.sling.New().Post("login/secure/login").
-		Set("Referer", "https://trader.degiro.nl/login/fr").
+		Set("Referer", "https://trader.degiro.nl/login/en").
 		BodyJSON(&LoginParams{
 			Username:           username,
 			Password:           password,
-			OTP:                otpCode,
 			IsRedirectToMobile: false,
 		}).ReceiveSuccess(LoginResponse)
 	if err != nil {
 		return nil, fmt.Errorf("request: %v", err)
 	}
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode > 299 {
 		return nil, fmt.Errorf("not 2xx status code: %d - %s", resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
+
+	if resp.StatusCode == http.StatusAccepted {
+		otpCode, err := c.getOTPCode(totpSecret)
+		if err != nil {
+			return nil, err
+		}
+
+		resp, err := c.sling.New().Post("login/secure/login/totp").
+			Set("Referer", "https://trader.degiro.nl/login/en").
+			BodyJSON(&LoginParams{
+				Username:           username,
+				Password:           password,
+				OTP:                otpCode,
+				IsRedirectToMobile: false,
+			}).ReceiveSuccess(LoginResponse)
+		if err != nil {
+			return nil, fmt.Errorf("request: %v", err)
+		}
+
+		if resp.StatusCode < http.StatusOK || resp.StatusCode > 299 {
+			return nil, fmt.Errorf("not 2xx status code: %d - %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+		}
+	}
+
 	c.lastLoginDate = time.Now()
 	log.Infof("login ok > sessionId : %s", LoginResponse.SessionId)
 	return LoginResponse, err

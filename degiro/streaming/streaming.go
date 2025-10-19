@@ -50,7 +50,7 @@ func NewStreamingClient(httpClient *http.Client, clientId int, updatePeriod time
 	base := sling.New().Client(httpClient).Base(streamingBaseUrl).
 		Set("Origin", "https://trader.degiro.nl").
 		Set("Accept", "*/*").
-		Set("Accept-Language", "fr,fr-FR;q=0.8,en-US;q=0.5,en;q=0.3").
+		Set("Accept-Language", "q=0.8,en-US;q=0.5,en;q=0.3").
 		Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0")
 
 	client := &Client{

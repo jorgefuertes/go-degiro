@@ -105,24 +105,29 @@ func (c *Client) Login(username, password, TOTPSecret string) error {
 	if err != nil {
 		return fmt.Errorf("login: %v", err)
 	}
+
 	c.sessionId = LoginResponse.SessionId
+
 	c.configuration, err = c.getConfiguration()
 	if err != nil {
 		return fmt.Errorf("getting configuration: %v", err)
 	}
+
 	c.userConfiguration, err = c.getUserConfiguration()
 	if err != nil {
 		return fmt.Errorf("getting user configuration: %v", err)
 	}
+
 	c.accountId = c.userConfiguration.AccountId
 	c.clientId = c.userConfiguration.ClientId
 	c.startUpdating()
 	c.startHistoricalPositionUdpating()
 	c.streamingClient = streaming.NewStreamingClient(c.httpclient, c.clientId, c.StreamingUpdatePeriod)
-	err = c.streamingClient.Start()
-	if err != nil {
+
+	if err := c.streamingClient.Start(); err != nil {
 		return fmt.Errorf("starting streaming client: %v", err)
 	}
+
 	return nil
 }
 
@@ -173,7 +178,7 @@ func (c *Client) login(username, password, totpSecret string) (*LoginResponse, e
 		}
 
 		c.lastLoginDate = time.Now()
-		log.Infof("login ok with 2FA > sessionId : %s", loginResponse.SessionId)
+		log.Infof("login ok with 2FA > sessionId : %s", otpLoginResponse.SessionId)
 		return otpLoginResponse, nil
 	}
 

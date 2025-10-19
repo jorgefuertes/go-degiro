@@ -127,14 +127,16 @@ func (c *Client) Login(username, password, TOTPSecret string) error {
 }
 
 func (c *Client) login(username, password, totpSecret string) (*LoginResponse, error) {
-	LoginResponse := new(LoginResponse)
+	loginResponse := new(LoginResponse)
+
 	resp, err := c.sling.New().Post("login/secure/login").
 		Set("Referer", "https://trader.degiro.nl/login/en").
 		BodyJSON(&LoginParams{
 			Username:           username,
 			Password:           password,
 			IsRedirectToMobile: false,
-		}).ReceiveSuccess(LoginResponse)
+		}).
+		ReceiveSuccess(loginResponse)
 	if err != nil {
 		return nil, fmt.Errorf("request: %v", err)
 	}
@@ -149,26 +151,36 @@ func (c *Client) login(username, password, totpSecret string) (*LoginResponse, e
 			return nil, err
 		}
 
+		otpLoginResponse := new(LoginResponse)
 		resp, err := c.sling.New().Post("login/secure/login/totp").
-			Set("Referer", "https://trader.degiro.nl/login/en").
+			Set("Referer", "https://trader.degiro.nl/login/es?_gl="+loginResponse.SessionId).
 			BodyJSON(&LoginParams{
 				Username:           username,
 				Password:           password,
 				OTP:                otpCode,
 				IsRedirectToMobile: false,
-			}).ReceiveSuccess(LoginResponse)
+			}).ReceiveSuccess(otpLoginResponse)
 		if err != nil {
 			return nil, fmt.Errorf("request: %v", err)
 		}
 
 		if resp.StatusCode < http.StatusOK || resp.StatusCode > 299 {
-			return nil, fmt.Errorf("not 2xx status code: %d - %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+			return otpLoginResponse, fmt.Errorf(
+				"not 2xx status code: %d - %s",
+				resp.StatusCode,
+				http.StatusText(resp.StatusCode),
+			)
 		}
+
+		c.lastLoginDate = time.Now()
+		log.Infof("login ok with 2FA > sessionId : %s", loginResponse.SessionId)
+		return otpLoginResponse, nil
 	}
 
 	c.lastLoginDate = time.Now()
-	log.Infof("login ok > sessionId : %s", LoginResponse.SessionId)
-	return LoginResponse, err
+	log.Infof("login ok > sessionId : %s", loginResponse.SessionId)
+
+	return loginResponse, err
 }
 
 type Configuration struct {

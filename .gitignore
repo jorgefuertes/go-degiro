@@ -1,5 +1,6 @@
 *.test
 *.out
-.idea/
-.vscode/
+.idea
+.vscode
 .env
+.trunk
